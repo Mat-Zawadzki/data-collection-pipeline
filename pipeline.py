@@ -77,41 +77,54 @@ class Scraper():
 
 
     def scrape_theme_page_for_products_list(self):
+        '''Scrapes each product on each theme page'''
         for link_to_themes in self.links_to_themes_list:  
 
-            links_to_current_products_list = []
-            theme_file_list = []
-            
-            theme_name = link_to_themes[34:]
-            self.theme_directory = 'F://lego_com_scraped//'+ theme_name
+            self.theme_name = link_to_themes[34:]
+            self.theme_directory = self.starting_directory + self.theme_name
 
             os.mkdir(self.theme_directory)
+
+            theme_file_list = []
             theme_file_list.append(link_to_themes)
 
             options = Options()
             options.headless = True 
             driver = webdriver.Firefox(options=options)
-            
             driver.get(link_to_themes)
             
             self.press_continue_and_cookies_and_load_more_buttons(driver)
+            self.get_products_list(driver)
 
-            for product_link in driver.find_elements(By.TAG_NAME, "a"):
+            driver.close()
+
+
+
+    def get_products_list(self, driver):
+        '''gets products list'''
+        links_to_current_products_list = []
+
+        for product_link in driver.find_elements(By.TAG_NAME, "a"):
                 product_link = product_link.get_attribute("href")
 
-                if "/en-gb/product" in product_link:
+                if "/en-gb/product" in product_link and product_link not in links_to_current_products_list:
                     links_to_current_products_list.append(product_link)
                     
                     if product_link not in self.links_to_products_list:
                         self.links_to_products_list.append(product_link)
 
-            self.links_to_products_list = self.links_to_products_list[1:]
-            links_to_current_products_list = links_to_current_products_list[1:]
-            
-            for product_link in links_to_current_products_list:
-                self.get_product_data(product_link)
-            
-            driver.close()
+        self.links_to_products_list = self.links_to_products_list[1:]
+        links_to_current_products_list = links_to_current_products_list[1:]
+        
+        for product_link in links_to_current_products_list:
+            self.get_product_data(product_link)
+
+
+
+    def create_starting_directory(self):
+        self.starting_directory = "C://lego_scraped//"
+        os.mkdir(self.starting_directory)
+
 
 
     def get_product_data(self, product_link):
@@ -119,8 +132,9 @@ class Scraper():
         self.product_links_into_product_link_soup(product_link)
         self.create_and_check_product_name_is_correct()
         self.create_and_check_product_directory_is_correct()
-        #self.download_all_images_for_product(product_link)
+        self.download_all_images_for_product(product_link)
         self.save_product_data_as_json()
+        print(self.product_name + " is scraped")
 
 
 
@@ -139,8 +153,8 @@ class Scraper():
             "Picture_links":self.picture_sources_list,
         }
 
-        product_json_file_name = self.product_directory + ".json"
-        with open(product_json_file_name, "w") as write_file:
+        json_product_directory = self.product_directory + "//" + self.product_name + ".json"
+        with open(json_product_directory, "w") as write_file:
             json.dump(self.product_data, write_file)
 
 
@@ -148,23 +162,11 @@ class Scraper():
     def create_and_check_product_directory_is_correct(self):
         '''creates product directory and checks for any unorthodox characters the computer might struggle with'''
         self.product_directory = self.theme_directory + "//" + self.product_name
-        
-        if ":" in list(self.product_directory[3:]):
-            self.product_directory = self.product_directory[3:]
-            self.product_directory = self.product_directory.replace(":","")
-            self.product_directory = "F:/"+self.product_directory
-
-        if "™" in list(self.product_directory):
-            self.product_directory = self.product_directory.replace("™","")
-
-        if "®" in list(self.product_directory):
-            self.product_directory = self.product_directory.replace("®","")
 
         if os.path.exists(self.product_directory) == True:
             self.product_directory = self.product_directory + "1"
 
         self.product_directory = self.product_directory.replace(' ', '_')
-
         os.mkdir(self.product_directory)
 
 
@@ -224,15 +226,9 @@ class Scraper():
 
 
 
-
-        '''for prod in self.soup.find_all("div"):
-            prod = prod.get("span")
-            print(prod)'''
-        
-
-
 def main():
     scrape = Scraper()
+    scrape.create_starting_directory()
     scrape.get_links_to_themes_list()
     scrape.scrape_theme_page_for_products_list()
 
