@@ -7,9 +7,9 @@
 Project dependancies
 In order to run this project the following need to be installed and/or imported:
 
--json
--requests
--os
--bs4
--selenium
--time
+- json
+- requests
+- os
+- bs4
+- selenium
+- time
